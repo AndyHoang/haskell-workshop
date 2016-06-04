@@ -28,7 +28,7 @@ import Lucid
 import Lucid.Bootstrap
 
 -- Part 1
-
+--https://www.reddit.com/r/haskell/hot/.json
 data Post = Post
   { subreddit :: T.Text
   , author :: T.Text
@@ -42,38 +42,88 @@ data Listing = Listing { posts :: [Post] }
   deriving (Show)
 
 getReddit :: String -> IO Listing
-getReddit subreddit = error "Not implemented...yet!"
+getReddit subreddit = do --error "Not implemented...yet!"
+  let url = "http://www.reddit.com/r/" <> subreddit <>"/hot/.json"
+  response <- simpleHTTP(getRequest url)
+  body <- getResponseBody response
+  case eitherDecode (cs body) of
+    Right listing -> pure listing
+    Left err -> error err
 
 -- Part 2
 
 getReddits :: [String] -> IO Listing
-getReddits reddits = error "Not implemented...yet!"
+getReddits reddits = do --error "Not implemented...yet!"
+  listings <- mapConcurrently getReddit reddits
+  pure (mergeListings listings)
 
 mergeListings :: [Listing] -> Listing
-mergeListings listings = error "Not implemented...yet!"
-
+mergeListings listings = --error "Not implemented...yet!"
+  Listing newPosts
+    where
+      newPosts = concat . transpose $ map posts listings
 printReddits :: [String] -> IO ()
 printReddits reddits = error "Not implemented...yet!"
 
 -- Part 3 (Server)
 
 server :: IO ()
-server = error "Not implemented...yet!"
+server = runSpock 8080 $ spockT id $ --error "Not implemented...yet!"
+  do
+    get "reddit" $
+      do
+        reddits <- param "reddits"
+        case reddits of
+          Nothing -> text "No reddits provided"
+          Just reddits' -> do
+            let redditList = splitOn "," reddits'
+            listing <- liftIO $ getReddits redditList
+            html (cs (renderText (renderAll listing)))
+            --text (cs $ show listing)
 
 bootstrap :: Html ()
-bootstrap = error "Not implemented...yet!"
+bootstrap = --error "Not implemented...yet!"
+  link_
+  [
+    href_ "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+  , rel_ "stylesheet"
+  ]
+
+renderAll :: Listing -> Html()
+renderAll listing = do
+  bootstrap
+  viewListing listing
 
 viewListing :: Listing -> Html ()
-viewListing = error "Not implemented...yet!"
+viewListing (Listing posts_)= --error "Not implemented...yet!"
+  mconcat (map renderPost (posts_))
 
 renderPost :: Post -> Html ()
-renderPost = error "Not implemented...yet!"
+renderPost (Post subreddit_ author_ score_ url_ title_ thumbnail_)
+  = do
+    row_ $ do
+      renderThumbnail thumbnail_
+      colMd 8 (a_ [href_ url_ ] (toHtml title_))
+    row_ $ do
+      colMd 1 (div_ "")
+      colMd 2 ("Score: " <> toHtml (show score_))
+      colMd 2 (toHtml subreddit_)
+      colMd 2 (toHtml author_)
+    hr_ []
+
+
+
 
 renderThumbnail :: T.Text -> Html ()
-renderThumbnail src = error "Not implemented...yet!"
+renderThumbnail src = do
+  let imageColumn = colMd 1 (img_ [src_ src, width_ "80px"])
+  case T.breakOn "://" src of
+    ("http", _) -> imageColumn
+    ("https", _) -> imageColumn
+    _ -> colMd 1 (div_ "")
 
 colMd :: Int -> Html () -> Html ()
-colMd span = error "Not implemented...yet!"
+colMd span = div_ [ class_ ("col-md-" <> (cs (show span))) ]
 
 -- INTERNALS
 instance FromJSON Post where
